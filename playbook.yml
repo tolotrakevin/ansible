@@ -1,0 +1,45 @@
+---
+- hosts: ssh-server-mrzee
+
+  remote_user: root
+  tasks:
+    - name: installs nginx
+      apt: pkg=nginx state=installed update_cache=true
+      notify:
+         - start nginx
+
+    - name: install pkg curl-git
+      apt: name={{ item }} update_cache=true state=latest
+      with_items:
+        - curl
+        - git
+      
+    - name: install node-source
+      shell: curl -sL https://deb.nodesource.com/setup_8.x | sh
+
+    - name: install node/npm
+      apt: name=nodejs state=latest
+     
+    - name: clone repo
+      git: repo=https://git.mrzee.fr/student/my-node-project.git dest=/var/www/my-node-project update=yes force=yes accept_hostkey=yes key_file=/home/kevin/Bureau/TP_devops/id_rsa
+
+    - name: install pm2
+     # command: npm install -g pm2
+      npm: name=pm2 global=yes
+
+    - name: install dependance
+      npm: path=/var/www/my-node-project/myapp
+    
+    - name: run apk pm2
+      shell: pm2 start /var/www/my-node-project/myapp/bin/www
+
+    - name: copy vhost
+      copy: src=/var/www/my-node-project/vhost dest=/etc/nginx/sites-enabled/default
+
+
+  handlers:
+    - name: start nginx
+      service: name=nginx  state=restart
+
+ # notify:
+#    - restart nginx
